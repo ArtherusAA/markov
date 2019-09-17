@@ -45,7 +45,7 @@ int read_from_file(FILE *f, char *buff) {
     }
     free(buff2);
     buff[i] = '\0';
-    return i + 1;
+    return 0;
 }
 
 int main(int argc, char** argv) {
@@ -67,6 +67,18 @@ int main(int argc, char** argv) {
         print_error_message("run without arguments");
         return 0;
     }
+    char *buff;
+    int frerror = read_from_file(inputfile, buff);
     fclose(inputfile);
+    switch (frerror) {
+        case -1:
+            print_error_message("system does not give enough memory to contain all instructions\n");
+            return 0;
+            break;
+        default:
+            print_error_message("file reading error occured");
+            return 0;
+            break;
+    }
     return 0;
 }
