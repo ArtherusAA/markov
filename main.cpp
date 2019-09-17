@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
-
+#include <vector>
+#include <string>
 
 void print_help() {
     printf("This is supposed to be help output\n");
@@ -12,9 +13,43 @@ void print_error_message(const char *message) {
     printf("error: %s\n", message);
 }
 
+int read_from_file(FILE *f, char *buff) {
+    int n = 1024, i = 0;
+    buff = malloc(sizeof(int) * n);
+    buff2 = malloc(sizeof(int) * n);
+    if (buff == NULL || buff2 == NULL) {
+        return -1;
+    }
+    while (!feof(f)) {
+        buff[i] = getc(f);
+        i++;
+        if (n - i < 3) {
+            for (int j = 0; j < i; j++) {
+                buff2[j] = buff[j];
+            }
+            free(buff);
+            n *= 2;
+            buff = malloc(sizeof(int) * n);
+            if (buff == NULL) {
+                return -1;
+            }
+            for (int j = 0; j < i; j++) {
+                buff[j] = buff2[j];
+            }
+            free(buff2);
+            buff2 = malloc(sizeof(int) * n);
+            if (buff2 == NULL) {
+                return -1;
+            }
+        }
+    }
+    free(buff2);
+    buff[i] = '\0';
+    return i + 1;
+}
+
 int main(int argc, char** argv) {
-    auto inputfile = stdin;
-    bool is_stdin = true;
+    FILE *inputfile;
     if (argc > 1) {
         if (strcmp(argv[1], "-h") == 0) {
             print_help();
@@ -28,8 +63,10 @@ int main(int argc, char** argv) {
             inputfile = f;
             is_stdin = false;
         }
+    } else {
+        print_error_message("run without arguments");
+        return 0;
     }
-    if (!is_stdin)
-        fclose(inputfile);
+    fclose(inputfile);
     return 0;
 }
