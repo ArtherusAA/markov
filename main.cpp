@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <iostream>
 
 void print_help() {
     printf("This is supposed to be help output\n");
@@ -13,10 +14,10 @@ void print_error_message(const char *message) {
     printf("error: %s\n", message);
 }
 
-int read_from_file(FILE *f, char *buff) {
+int read_from_file(FILE *f, char* &buff) {
     int n = 1024, i = 0;
-    buff = malloc(sizeof(int) * n);
-    buff2 = malloc(sizeof(int) * n);
+    buff = (char*)malloc(sizeof(int) * n);
+    char *buff2 = (char*)malloc(sizeof(int) * n);
     if (buff == NULL || buff2 == NULL) {
         return -1;
     }
@@ -29,7 +30,7 @@ int read_from_file(FILE *f, char *buff) {
             }
             free(buff);
             n *= 2;
-            buff = malloc(sizeof(int) * n);
+            buff = (char*)malloc(sizeof(int) * n);
             if (buff == NULL) {
                 return -1;
             }
@@ -37,14 +38,62 @@ int read_from_file(FILE *f, char *buff) {
                 buff[j] = buff2[j];
             }
             free(buff2);
-            buff2 = malloc(sizeof(int) * n);
+            buff2 = (char*)malloc(sizeof(int) * n);
             if (buff2 == NULL) {
                 return -1;
             }
         }
     }
     free(buff2);
-    buff[i] = '\0';
+    buff[i - 1] = '\0';
+    return 0;
+}
+
+int parse(char *buff, std::vector <std::string> &subs, std::vector <int> &is_term) {
+    int flag = 1;
+    int opened_q = 0;
+    int i = 0;
+    int str_counter = 0;
+    is_term.push_back(0);
+    std::string curr_str = "";
+    while (buff[i] != '\0') {
+        if (opened_q) {
+            switch (buff[i]) {
+                case '\"':
+                    opened_q = 0;
+                    str_counter++;
+                    flag *= -1;
+                    subs.push_back(curr_str);
+                    if (str_counter % 2 == 0)
+                        is_term.push_back(0);
+                    curr_str = "";
+                    break;
+                default:
+                    curr_str = curr_str + buff[i];
+                    break;
+            }
+        } else {
+            switch (buff[i]) {
+                case '\"':
+                    opened_q = 1;
+                    break;
+                case '.':
+                    if (flag != -1)
+                        return -1;
+                    is_term[str_counter / 2] = 1;
+                    break;
+                case ' ':
+                case '\n':
+                    break;
+                default:
+                    return -1;
+                    break;
+            }
+        }
+        i++;
+    }
+    if (str_counter % 2 == 1)
+        return -1;
     return 0;
 }
 
@@ -61,7 +110,6 @@ int main(int argc, char** argv) {
                 return 0;
             }
             inputfile = f;
-            is_stdin = false;
         }
     } else {
         print_error_message("run without arguments");
@@ -75,10 +123,42 @@ int main(int argc, char** argv) {
             print_error_message("system does not give enough memory to contain all instructions\n");
             return 0;
             break;
+        case 0:
+            break;
         default:
             print_error_message("file reading error occured");
             return 0;
             break;
     }
+    std::vector <std::string> subs;
+    std::vector <int> is_term;
+    frerror = parse(buff, subs, is_term);
+    free(buff);
+    switch (frerror) {
+        case -1:
+            print_error_message("wrong syntax");
+            return 0;
+            break;
+        case 0:
+            break;
+        default:
+            print_error_message("unspecified error while parsing");
+            break;
+    }
+    std::string inp;
+    std::cin >> inp;
+    bool halt = true;
+    do {
+        halt = true;
+        for (int i = 0; i < (int)subs.size() / 2; i++) {
+            int it = (int)inp.find(subs[i * 2]);
+            if (it < (int)inp.size() && it >= 0) {
+                halt = (bool)is_term[i];
+                inp.replace(it, (int)subs[i * 2].size(), subs[i * 2 + 1]);
+                break;
+            }
+        }
+    } while (!halt);
+    std::cout << inp << "\n";
     return 0;
 }
